@@ -1,4 +1,4 @@
-<a href="url"><img src="https://github.com/bobtail-dev/bobtail-dev.github.io/blob/master/mascot/eager.png" align="left" width="256" ></a>
+<img src="https://github.com/bobtail-dev/bobtail-dev.github.io/blob/master/mascot/eager.png" align="left" width="256" >
 
 # bobtail-docs
 Documentation Repository for Bobtail
