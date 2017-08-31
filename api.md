@@ -1,0 +1,330 @@
+# `rx` Namespace
+
+This contains the core reactive programming primitives. These are the core data structures:
+
+* `ObsBase`: base class for all other observable objects
+*   `ObsCell`: observable cell base class
+    *   `SrcCell`: a source cell, one that can be directly mutated
+    *   `DepCell`: a dependent cell, one whose value is some function of another observable cell
+*   `ObsArray`: observable array base class
+    *   `SrcArray`: a source array, one that can be directly mutated
+    *   `DepArray`: a dependent array, one whose value is some transformation of another observable array
+*   `ObsSet`: observable Set base class
+    *   `SrcSet`:
+    *   `DepSet`:
+*   `ObsMap`: observable Map base class
+    *   `SrcMap`: a source object, one that can be directly mutated
+    *   `DepMap`: a dependent object, one whose value is some transformation of another observable object
+*   `Ev`: an event node; serves as a pub-sub node for events of a certain type
+
+## Free functions
+
+*   `cell(value)`: return a `SrcCell` initialized to the given value (optional; defaults to `undefined`)
+** `cell.from(value)`: 
+*   `array(value[, diff])`: return a `SrcArray` initialized to the given array (optional; defaults to `[]`) and the 
+given `diff` function for computing/propagating the minimal set of change events (defaults to `rx.basicDiff()`).
+*   `bind(fn)`: given a 0-ary function, return a `DepCell` whose value is bound to the result of evaluating that 
+function. The function is immediately evaluated once, and each time it's evaluated, for any accesses of observables, 
+the `DepCell` subscribes to the corresponding events, which may subsequently trigger future re-evaluations.
+*   `snap(fn)`: evaluate the given 0-ary function while insulating it from the enclosing bind. This will be evaluated 
+_just once_ and prevents subscriptions to any observables contained therein.
+*   `asyncBind(init, fn)`: create an asynchronous bind. The given `fn` is expected to call `this.record(f)` up to at 
+most one time at some point during its potentially asynchronous duration before calling `this.done(result)`. The call 
+to `this.record(f)` evaluates `f` while recording the implicit subscriptions triggered by accesses to observables. 
+(You can call `done` from within `record` but the result won't be set on this cell until after `record` finishes.) The 
+cell's initial value is `init`.
+*   `lagBind(lag, init, fn)`: same as `bind` but waits a 500ms delay after a dependency changes (or after 
+initialization) before the `DepCell` refreshes. For the first 500ms, the cell's value is `init`; you can set this to 
+e.g. `noSub(fn)` if you want to immediately populate it with the result of evaluating your given `fn`.
+*   `postLagBind(init, fn)`: immediately evaluates `fn`, which is expected to return a `{val, ms}`, where `ms` 
+indicates how long to wait before publishing `val` as the new value of this `DepCell`. Until the first published value,
+the cell is initialized to `init`.
+*   `reactify(obj, spec)`: mutates an object to replace the specified fields with ES5 getters/setters powered by an
+observable cell/array, and returns the object. `spec` is a mapping from field name to `{type, val}`, where `type` is 
+`'array'` or `'cell'` and `val` is an optional initial value.
+*   `autoReactify(obj)`: mutates an object to `reactify` all fields (specifying `array` for arrays and `cell` for 
+everything else), and returns the object
+*   `flatten(xs)`: given an array of either `Array`s, `ObsArray`s, `ObsCell`s, `ObsSet`s, primitives, or objects, 
+flatten them into one dependent array, which will be able to react to changes in any of the observables. It 
+furthermore strips out `undefined`/`null` elements (for convenient conditionals in the array). This operation is a 
+"deep flatten"---it will recursively flatten nested arrays. This function is a useful tool for building up the 
+DOM---for specifying the children of an element where the children can consist of many different individual elements, 
+arrays, and/or conditionals.
+*   `onDispose(callback)`: add a (0-ary) cleanup listener, which gets fired whenever the current (enclosing) bind is 
+removed or refreshed. This is useful for proper resource disposal, such as closing a connection or removing an interval
+timer.
+*   `skipFirst(f)`: wrap a 1-ary function such that the first invocation is simply dropped. This is useful for 
+subscribing an event listener but suppressing the initial invocation at subscription time.
+*   `autoSub(ev, listener)`: Subscribes a listener to an event but such that if this is called from within a `bind`
+context, the listener will be properly cleaned up (unsubscribed) on context disposal. Returns the subscription ID.
+*   `concat(arrays...)`: returns a dependent array that is the result of concatenating multiple `ObsArray`s 
+(efficiently maintained).
+*   `cellToArray(cell[, diff])`: given an `ObsCell` of an array, return a `DepArray` that issues the minimal set of 
+change events by diffing the contents of the array to determine what has changed. Similar in mechanism to 
+`SrcArray.update`. `diff` is an optional diff function (see `SrcArray.update` documentation) and defaults to 
+`rx.basicDiff()`.
+*   `cellToMap(cell)`: given an `ObsCell` of a primitive JS object, return a `DepMap` that, in response to future new 
+values of the object, issues the minimal set of events by diffing the contents of the object to determine what has 
+changed.
+*   `basicDiff([key])`: returns a diff function that takes two arrays and uses the given key function, which defaults 
+to `rx.smartUidify`, to efficiently hash-compare elements between the two arrays. Used by `rx.cellToArray`.
+*   `smartUidify(x)`: returns a unique identifier for the given object. If the item is a scalar, then return its JSON 
+string. If the item is an object/array/etc., create a unique ID for it, insert it (this is a standard "hashing hack" 
+for JS) as a non-enumerable property `__rxUid`, and return it (or just return any already-existing `__rxUid`). I.e., 
+this implements reference equality. Used by `rx.basicDiff`.
+*   `lift(x[, spec])`: convert an object `x` containing regular non-observable fields to one with observable fields 
+instead. `spec` is a mapping from field name to either `'cell'`, `'array'`, or `'map'`, based on what kind of 
+observable data structure we want. By default this is supplied by `rx.liftSpec`.
+*   `liftSpec(x)`: given an object `x`, return a spec for `rx.lift` where any field that is an array is to be stored in 
+an `rx.array`, and otherwise in an `rx.cell`.
+*   `transaction(f)`: run the given function in a _transaction_, during which updates to observables will not emit 
+change events to their subscribers. Only once the transaction ends will all events be fired (at which time the state 
+of the source cells will no longer be in flux, and thus a consistent view of the universe can always be maintained).
+*   `hideMutationWarnings(f)`: Run the given function, but suppress console logging of mutation warnings and firing of 
+the `onMutationWarnings` event. This is useful when you need to mutate a cell when already within a bind context, but 
+you *know* that doing so is safe.
+*   `cast(...)`: two forms:
+    *   `rxt.cast(opts, types)`: convenience utility for use in preparing arguments for a component. `opts` is the 
+    arguments object mapping, and `types` is an object mapping fields of `opts` to either `cell` or `array`. `cast` 
+    returns a copy of `opts` but with the fields casted based on the specified desired `types` (yielding observable 
+    cells and arrays).
+    *   `rxt.cast(data, type)`: lift the given datum to the given type; acts as identity function if data is already of
+    the proper type.
+
+## `Ev`
+
+*   `sub(listener)`: subscribes a listener function for events from this event node and returns a unique ID for this 
+subscription, which can be used as the handle by which to unsubscribe later. The listener takes a single argument, 
+whose type depends on the event, and is called every time an event is fired on this event node. NB: you are almost
+certainly better off using the `rx.autoSub` utility method, which ensures that subscriptions are garbage collected.
+*   `pub(data)`: publish an event, described by the data in `data`. `data` is what will be passed to all the subscribed 
+listeners.
+*   `unsub(subscriptionId)`: detaches a listener from this event.
+*   `scoped(listener, contextFn)`: subscribes to the listener, runs `contextFn()`, and unsubs the listener. Returns the
+result of `contextFn()`.
+*   `observable`: the observable object to which the `Ev` is attached.
+
+## `ObsBase`
+`ObsCell`, `ObsArray`, `ObsSet`, and `ObsMap` all extend the `ObsBase` class, which provides a few common methods:
+* `flatten()`: returns `rx.flatten(this)` .
+* `raw()`: returns the underlying value stored by the reactive object. Short for `rx.snap(() => cell.all())`.
+* `all()`: returns current value of the reactive object, and subscribes to any changes to it. Abstract method 
+implemented by all subclasses.
+* `readonly()`: returns a `Dep` version of the current object. An `ObsCell` returns a `SrcCell`, an 
+`ObsMap` returns a `SrcMap`, and so forth. Abstract method implemented by all subclasses.
+
+## `ObsCell`
+
+*   `get()`: return current value of the cell
+*   `onSet`: the event that is fired after the value of the cell is changed. The event data is an array of two elements,
+`[oldVal, newVal]`.
+
+### `SrcCell`
+
+*   `set(x)`: set value of cell to `x` and return old value of `x`
+
+### `DepCell`
+
+*   `disconnect`: unsubscribes this cell from its dependencies and recursively disconnects all nested binds; useful for
+manual disposal of `bind`s
+
+## `ObsArray`
+
+`ObsArray` implements most of the non-mutating methods of the native JS `Array` class, in reactive form. 
+
+*   `get(i)`: return element at `i` 
+*   `at(i)`: alias for `get`. Included for backwards compatibility.
+*   `all()`: return array copy of all elements
+*   `raw()`: return raw array of all elements; this is unsafe since mutations will violate the encapsulated invariants,
+but serves as a performance escape hatch around `all()`
+*   `length()`: return size of the array
+*   `transform(f)`: returns a `DepArray` with value bound to `f(this.all())`.
+*   `onChange`: the event that is fired after any part of the array is changed. The event data is an array of three
+elements: `[index, added, removed]`, where `index` is the index where the change occurred, `added` is the sub-array of
+elements that were added, and `removed` is the sub-array of elements that were removed.
+*   `indexed()`: return a `DepArray` that mirrors this array, but whose `map` method passes in the index as well. 
+The mapper function takes `(x,i)` where `x` is the current element and `i` is a cell whose value always reflects the 
+index of the current element.
+
+*   `map(fn)`: return `DepArray` of given function mapped over this array. For legacy reasons, not quite analagous to 
+`Array.map`, in that fn is only a 1-ary function, as opposed to the 3-ary `(currentValue, index, array)` signature
+of `Array.prototype.map`.
+*   `filter(f)`: returns a `DepArray` with value bound `this.all().filter(f)`. analagous to `Array.prototype.filter`.
+*   `slice(x, y)`: returns a `DepArray` with value bound `this.all().slice(x, y)`. analagous to `Array.prototype.slice`.
+*   `reduce(f)`: returns a `DepArray` with value bound `this.all().reduce(f)`. analagous to `Array.prototype.reduce`.
+*   `reduceRight(f)`: returns a `DepArray` with value bound `this.all().reduceRight(f)`. Analagous to 
+`Array.prototype.reduceRight`.
+*   `every(f)`: returns `this.all().every(f)`.
+*   `some(f)`: returns `this.all().some(f)`.
+*   `indexOf(val, from)`: returns `this.all().indexOf(val, from)`.
+*   `lastIndexOf(val, from)`: returns `this.all().lastIndexOf(val, from)`.
+*   `join(separator)`: returns `this.all().join(separator)`.
+*   `first()`: returns the first element in the `ObsArray`.
+*   `last()`: returns the last element in the `ObsArray`.
+
+
+### `SrcArray`
+`ObsArray` implements most of the mutator methods of the native JS `Array` class, in reactive form. None of the mutator
+functions specified here should cause events to subscribe.
+
+*   `SrcArray([xs[, diff]])`: constructor that initializes the content array to `xs` (note: keeps a reference and does 
+not create a copy) and the diff function for `update` to `diff` (defaults to `rx.basicDiff()`).
+*   `splice(index, count, additions...)`: replace `count` elements starting at `index` with `additions`
+*   `insert(x, i)`: insert value `x` at index `i`
+*   `remove(x)`: find and remove first occurrence of `x`
+*   `removeAt(i)`: remove element at index `i`
+*   `push(x)`: append `x` to the end of the `ObsArray`
+*   `pop()`: removes and returns the last element of the `ObsArray`
+*   `unshift(x)`: prepend `x` to the front of the `ObsArray`
+*   `shift()`: removes and returns the first element of the `ObsArray`
+*   `reverse()`: reverses the order of elements of the `ObsArray` and returns its new value, *without* subscribing.
+*   `put(i, x)`: replace element `i` with value `x`
+*   `replace(xs)`: replace entire array with raw array `xs`
+*   `update(xs[, diff])`: replace entire array with raw array `xs`, but apply the `diff` algorithm to determine the 
+minimal set of changes for which to emit events. This enables flexible updating of the array, representing arbtirary 
+transformations, while at the same time minimizing the downstream recomputation necessary (particularly DOM 
+manipulations).
+*   `move(src, dest)`: Moves the element at `src` to before `dest` as a single mutation.
+*   `swap(i1, i2)`: Swaps the elements at i1 and i2 as a single mutation.
+*   inherits `ObsArray`
+
+### `DepArray`
+
+*   inherits `ObsArray`
+
+## `ObsSet`
+A reactive version of the `Set` object introduced by ES2015.
+* `has(key)`: returns if `key` is in the set.
+* `values()`: returns a copy of the underlying `Set`. alias for `.all`, to match the ES2015 `Set` API.
+* `entries()`: returns a copy of the underlying `Set`. alias for `.all`, to match the ES2015 `Set` API.
+
+### `SrcSet`
+### `DepSet`
+
+## `ObsMap`
+
+*   `get(k)`: return value associated with key `k`
+*   `all()`: return raw object copy
+*   `onAdd`: the event that is fired after an element is added. The event data is a map of added keys to their 
+corresponding values.
+*   `onRemove`: the event that is fired after an element is removed. The event data is a map of removed keys to their 
+original values.
+*   `onChange`: the event that is fired after a key's value is changed. The event data is a map of changed keys to a
+two-element list of `[old value, new value]`.
+
+### `SrcMap`
+
+*   `put(k, v)`: associate value `v` with key `k` and return any prior value associated with `k`
+*   `remove(k)`: remove the entry associated at key `k`
+*   `update(map)`: update the current `SrcMap`'s contents to those of the given JS object `map`, triggering any 
+necessary `remove`s and `put`s
+*   inherits `ObsMap`
+
+### `DepMap`
+
+*   inherits `ObsMap`
+
+# `rx.rxt` Namespace
+
+This contains the template DSL constructs. The main thing here is the _tag function_, which is what constructs a DOM element.
+
+## Free functions
+
+*   `mktag(tag)`: returns a tag function of the given tag name. The various tags like `div` and `h2` are simply aliases;
+e.g., `div = mktag('div')`. 
+Tag functions themselves take `(attrs, contents)`, both optional, where `attrs` is a JavaScript object of HTML 
+attributes and/or _special attributes_ 
+and `contents` is an array (`ObsArray` or regular `Array`) of child nodes (either raw elements, `RawHtml`, or jQuery 
+objects) and/or strings (for 
+text nodes). You can also pass in a singular such node without the array. The function returns an instance of the 
+specified element wrapped in a jQuery object. See also `specialAttrs` below for more on special attributes.
+*   `importTags([dest])`: populate the global namespace (or the `dest` object if given) with the tag symbols, so you 
+don't need have `rxt` all over your templates. Useful for quickly throwing something together.
+*   `rawHtml(html)`: returns a `RawHtml` wrapper for strings that tags won't escape when rendering; example: 
+`div {}, [rawHtml('<span>hello</span>')]`
+* `rxt.cssify(props)`: **(deprecated: set the `style` property directly to a JSON object instead of using this so as 
+to use `jQuery.css`, which is smarter about interpreting the given values)** convenience utility for programmatically 
+constructing strings suitable for use as a `style` attribute. Takes an object mapping camelCase versions of style 
+property names and values that are either strings (which are put in verbatim), numbers (which are written as pixels), 
+or `null`/`undefined` (which omits that property altogether).
+* `rxt.smushClasses(classes)`: convenience utility for programmatically constructing strings suitable for use as a 
+`class` attribute. Takes an array of strings or `undefined`s (useful for conditionally including a class), and filters 
+out the `null`/`undefined`.
+* Tags: `p`, `br`, `ul`, `li`, `span`, `anchor`, `div`, `input`, `select`, `option`, `label`, `button`, `fieldset`, 
+`legend`, `section`, `header`, `footer`, `strong`, `h1`, `h2`, `h3`, `h4`, `h5`, `h6`, `h7`
+
+## jQuery plug-in
+
+*   `rx(property)`: lazily create (or take the cached instance) of a cell whose value is maintained to reflect the 
+desired property on the element. `property` can be `'checked'`, `'focused'`, or `'val'`. Returns the cell.
+
+## Special attributes
+
+_Special attributes_ are handled differently from normal. The built-in special attributes are primarily events like 
+`click`:
+
+```
+button {click: -> console.log('hello')}, 'Hello'
+```
+
+Special attributes are really just a convenient short-hand for running the handler functions after constructing object. 
+The above example is equivalent to:
+
+```
+$button = button 'Hello'
+$button.click -> console.log('hello')
+```
+
+The built-in special attributes available include:
+
+* `init`: which is a 0-ary function that is run immediately upon instantiation of the element.
+* `style`: automatically transforms the given value with `cssify` if it's not a string
+* `class`: automatically transforms the given value with `smushClasses` if it's not a string
+* events like `click`, `focus`, `mouseleave`, `keyup`, `load`, etc.,: these are available for all jQuery events. 
+The handlers are similar to those you would pass to a jQuery event method?they take a jQuery event and return false to 
+stop propagation?but the context is the jQuery-wrapped element instead of the raw element. The full list:
+
+    *   `blur`
+    *   `change`
+    *   `click`
+    *   `dblclick`
+    *   `error`
+    *   `focus`
+    *   `focusin`
+    *   `focusout`
+    *   `hover`
+    *   `keydown`
+    *   `keypress`
+    *   `keyup`
+    *   `load`
+    *   `mousedown`
+    *   `mouseenter`
+    *   `mouseleave`
+    *   `mousemove`
+    *   `mouseout`
+    *   `mouseover`
+    *   `mouseup`
+    *   `ready`
+    *   `resize`
+    *   `scroll`
+    *   `select`
+    *   `submit`
+    *   `toggle`
+    *   `unload`
+
+`specialAttrs`: an object mapping special attribute names to the functions that handle them. When an element specifies 
+a special attribute, this handler function is invoked. The handler function takes `(element, value, attrs, contents)`, 
+where:
+
+*   `element` is the element being operated on
+*   `value` is the value of this special attribute for `element`
+*   `attrs` is the full map of attributes for `element`
+*   `contents` is the content/children for `element` (which can be a string, `RawHtml`, array, `ObsCell`, or `ObsArray`)
+
+So for instance, we can create a special attribute `drag` that just forwards to the jQuery `[jdragdrop]` plug-in:
+
+```rxt.specialAttrs.drag = (elt, fn, attrs, contents) -> elt.drag(fn)```
+
+and then use it like so in your templates:
+
+```div {class: 'block', drag: -> $(this).css('top', e.offsetY)}```

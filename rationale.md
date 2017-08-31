@@ -1,0 +1,70 @@
+With so many client-side model-view web frameworks out there, why create yet another one? What's so special about this 
+one? The goals of Bobtail include:
+
+* scaling well in both performance and code architecture to large/complex applications
+* having simple foundations in composable primitives
+* minimizing "magic"
+* enabling declarative expressiveness even for complex data-bound views
+
+Bobtail actually consists of two layers. At its core, it provides reactive programming primitives that allow users 
+to declaratively specify arbitrary dataflow DAGs, where data structures are automatically updated in response to updates 
+in their dependencies. This is in lieu of the heftier first-class-event systems like Backbone. The idea is that all 
+application dependencies, including high-level business logic and domain-specific concepts, are conveniently represented 
+by (potentially complex) data types built out of observable cells.
+
+The second layer in Bobtail is that of the "template language," the DSL for constructing UIs out of not only DOM 
+elements but arbitrary user-defined components as well.
+
+A major benefit of embedding into Javascript rather than creating a limited template language, is that the system now 
+inherits JavaScript's abstractions and expressive power for free. For instance, defining reusable component 
+abstractions is as simple as defining and calling a function. The ability to define reusable components, and the manner 
+in which they are assembled together, is at the core of what makes for scalable architecture, and this is an aspect 
+that Bobtail makes very simple/natural. Plus, we inherit all the expressivity of the host language, such as loops and 
+conditionals, recursion, variables, expressions, and so forth.
+
+Furthermore, by avoiding the creation of a new language (even simple syntactic transforms), we retain all the benefits 
+of the tooling around an established host language, such as source maps, syntax highlighting, linting, comment doc 
+processing, compiler implementations, etc.
+
+The syntax leveraged some features of CoffeeScript to achieve the expressive power of a declarative HTML-ish template 
+language:
+
+* general malleability for DSLs, esp. for declaring structures
+* concise anonymous function definitions for delimiting bindings to re-compute
+* string interpolation
+* reuse any code you've already written
+
+Many of these features have since been made part of the core Javascript language with the release of ES2015. While 
+CoffeeScript's parentheses-free style of programming definitely makes the templating code cleaner, arrow functions and
+
+
+At the same time, because we are simply writing JavaScript, we have all the flexibility and code which that brings to 
+the table, useful for shaping data for the views as well as for specifying component behavior.
+
+Bobtail is designed for rich application development. This is a developer-centric framework that does not pretend to be 
+something that is used by designers or tools (which is not to say it does not fit in a workflow involving both 
+developers and designers). Rather than focusing on the division between markup and logic, Bobtail focuses on separating
+models from views, enabling complex UIs (such as recursively structured DOMs), and on the component abstraction. 
+Components must encapsulate not just markup, but also coupled with behavior, which should be frictionless to add, 
+particularly on account of the embedded DSL implementation.
+
+The framework needs to scale well to more complex front-ends, including:
+
+* web page editor where the model is the DOM, CSSOM, etc. of a web page, and views are not just editing controls but 
+also the fully rendered web page itself
+* data analysis tool involving sizeable amounts of data and detailed visualizations over the data, where individual 
+data points are represented in the visualizations
+
+This is achieved by enabling large/deep model dependencies to be built out of the Bobtail programming primitives, as 
+well as allowing for precise control over the binding and re-rendering of the DOM templates. Bobtail avoids relying on 
+computing diffs between models or between generated views, so as to minimize latency for UI updates even for large, 
+complex applications.
+
+Finally, Bobtail also aims to be a compact framework. The documentation/website you're now reading is significantly 
+longer than the code. Bobtail focuses only on bindings and templates, and nothing else. This is the "Flask-over-Django" 
+approach of choosing best-of-breed libraries for different concerns. For instance, certain frameworks also include a 
+routing subsystem; we recommend using instead stand-alone, dedicated libraries for routing such as 
+[cherrytree](https://github.com/QubitProducts/cherrytree) to parse routes from History.js events.
+
+For more on design choices and to juxtapose this framework against specific other frameworks in, refer to 
+[comparisons](comparisons.md).
