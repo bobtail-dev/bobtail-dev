@@ -1,0 +1,22 @@
+--- 
+--- 
+
+@import "{{ site.theme }}"; 
+
+.highlight {
+  background-color: white !important;
+}
+
+.nav {
+  display: inline-flex;
+  justify-content: space-evenly;
+  width: 100%;
+  text-align: center;
+  font-size: 1.5em;
+  a { 
+    color: white;
+  }
+  a:hover {
+    color: #f8f8f8;
+  }
+}

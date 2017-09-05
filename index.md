@@ -3,7 +3,7 @@ title: Introduction
 ---
 
 # Introduction
-<img style="display:inline; float: right; height: 256px; width: 256px;" src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/logo.png">
+<img style="display:inline; float: right; height: 200px;" src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/logo.png">
 Bobtail is a simple and lightweight Javascript reactive programming framework, combined with declarative DOM 
 construction. There's no magic and no new templating language; it's all Javascript.
 
