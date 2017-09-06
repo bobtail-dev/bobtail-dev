@@ -104,7 +104,3 @@ support of [Dropbox](https://blogs.dropbox.com/dropbox/).
 *   [Yang Zhang](https://github.com/yang)
 
 Last, but certainly not least, is the amazing Adèle Boulie, who designed our new mascot, Charlie the Bobtail.
-
-----
-Bobtail Ⓒ 2017 bobtail authors.
-Charlie the Bobtail Ⓒ Adèle Boulie 2017. Used by permission.
