@@ -1,3 +1,5 @@
+# Rationale
+
 With so many client-side model-view web frameworks out there, why create yet another one? What's so special about this 
 one? The goals of Bobtail include:
 
@@ -36,7 +38,6 @@ language:
 
 Many of these features have since been made part of the core Javascript language with the release of ES2015. While 
 CoffeeScript's parentheses-free style of programming definitely makes the templating code cleaner, arrow functions and
-
 
 At the same time, because we are simply writing JavaScript, we have all the flexibility and code which that brings to 
 the table, useful for shaping data for the views as well as for specifying component behavior.

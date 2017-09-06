@@ -64,7 +64,7 @@ released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2
 ## Learn more
 You can find our [API Documentation here](api.md) and [tutorial](tutorial.md)!
 
-# Project History
+## Project History
 
 Bobtail was originally developed by [Yang Zhang](yang.github.io) under the name [Reactive Coffee](yang.github.io/reactive-coffee). 
 While working with Yang at [Infer](www.infer.com), Richard Mehlinger gradually took over the role of primary 
@@ -84,7 +84,7 @@ overwhelmed by cuteness.
 Bobtail was developed under the auspices of [Infer, Inc.](www.infer.com) Continued development on Bobtail is with the
 support of [Dropbox](https://blogs.dropbox.com/dropbox/).
 
-# Contributors
+## Contributors
 
 *   [Travis Athougies](https://github.com/tathougies)
 *   Cassie Doll

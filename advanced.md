@@ -2,6 +2,8 @@
 title: Advanced Concepts
 ---
 
+# Advanced Concepts
+
 ## Side Effects and Resource Cleanup
 
 Sometimes you will have side effects associated with certain `bind`s or components, such as establishing a connection 
