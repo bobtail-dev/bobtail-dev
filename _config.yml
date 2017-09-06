@@ -2,6 +2,6 @@ theme: jekyll-theme-architect
 title: bobtail.js
 description: A flexible, concise reactive programming framework
 github.repository_url: https://github.com/bobtail-dev/bobtail
-github.zip_url: https://github.com/bobtail-dev/bobtail/repo/tarball/master
-github.tar_url: https://github.com/bobtail-dev/bobtail/repo/zipball/master
+github.zip_url: https://api.github.com/repos/bobtail/bobtail-dev/tarball/master
+github.tar_url: https://api.github.com/repos/bobtail/bobtail-dev/tarball/master
 github.repository_url: https://github.com/bobtail-dev/bobtail
