@@ -3,7 +3,9 @@ title: Introduction
 ---
 
 # Introduction
-<img style="display:inline; float: right; height: 200px;" src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/logo.png">
+
+<img class="header-image" src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/eager.png">
+
 Bobtail is a simple and lightweight Javascript reactive programming framework, combined with declarative DOM 
 construction. There's no magic and no new templating language; it's all Javascript.
 
@@ -57,12 +59,13 @@ functions giving finer grained control of dependency subscription and updating.
 To install bobtail, simply run `npm i --save bobtail`! 
 Or, if you only want the reactive primitives without the `rxt` templating functions, `npm i --save bobtail-rx`.
 
+## Learn more
+<img class="body-image" src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/cool.png">
+You can find our [API Documentation here](api.md) and [tutorial](tutorial.md)!
+
 ## License
 Bobtail is released under the [MIT License](https://opensource.org/licenses/MIT). Note that some of the packages in our [ecosystem](ecosystem.md) have been
 released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0).
-
-## Learn more
-You can find our [API Documentation here](api.md) and [tutorial](tutorial.md)!
 
 ## Project History
 

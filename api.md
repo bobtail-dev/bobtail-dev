@@ -1,5 +1,7 @@
 # API Documentation
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/listening.png" class="header-image"/> 
+
 # `rx` Namespace
 
 This contains the core reactive programming primitives. These are the core data structures:
@@ -9,14 +11,14 @@ This contains the core reactive programming primitives. These are the core data 
     *   `SrcCell`: a source cell, one that can be directly mutated
     *   `DepCell`: a dependent cell, one whose value is some function of another observable cell
 *   `ObsArray`: observable array base class
-    *   `SrcArray`: a source array, one that can be directly mutated
-    *   `DepArray`: a dependent array, one whose value is some transformation of another observable array
+    *   `SrcArray`
+    *   `DepArray`
 *   `ObsSet`: observable Set base class
-    *   `SrcSet`:
-    *   `DepSet`:
+    *   `SrcSet`
+    *   `DepSet`
 *   `ObsMap`: observable Map base class
-    *   `SrcMap`: a source object, one that can be directly mutated
-    *   `DepMap`: a dependent object, one whose value is some transformation of another observable object
+    *   `SrcMap`
+    *   `DepMap`
 *   `Ev`: an event node; serves as a pub-sub node for events of a certain type
 
 ## Constructor aliases
@@ -288,12 +290,14 @@ an `rx.array`, and otherwise in an `rx.cell`.
 
 # `rx.rxt` Namespace
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/stalking.png" class="header-image"/>
+
 This contains the template DSL constructs. The main thing here is the _tag function_, which is what constructs a DOM element.
 
 *   `mktag(tag)`: returns a tag function of the given tag name. The various tags like `div` and `h2` are simply aliases;
 e.g., `div = mktag('div')`. 
 Tag functions themselves take `(attrs, contents)`, both optional, where `attrs` is a JavaScript object of HTML 
-attributes and/or _special attributes_ 
+attributes and/or _special attributes_  
 and `contents` is an array (`ObsArray` or regular `Array`) of child nodes (either raw elements, `RawHtml`, or jQuery 
 objects) and/or strings (for 
 text nodes). You can also pass in a singular such node without the array. The function returns an instance of the 

@@ -4,6 +4,8 @@ title: Advanced Concepts
 
 # Advanced Concepts
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/saunter.png" class="header-image"/>
+
 ## Side Effects and Resource Cleanup
 
 Sometimes you will have side effects associated with certain `bind`s or components, such as establishing a connection 
@@ -94,6 +96,8 @@ $('.toggle-button').click(function() {
 ```
 
 ## Mutations Inside Binds
+
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/confused.png" class="body-image"/>
 
 Say you had some dependent cell:
 

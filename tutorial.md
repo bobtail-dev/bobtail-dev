@@ -1,5 +1,7 @@
 # Tutorial
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/chasing.png" class="header-image"/>
+
 ## Getting Started
 
 Start by cloning the [Bobtail Project Seed](https://github.com/bobtail-dev/bobtail-project-seed):
@@ -467,6 +469,9 @@ $button.click(function() { return $(this).text('I been clicked.'); });
 ```
 
 ## Reactive Templates
+
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/sneak.png" class="body-image"/>
+
 Of course, if we were only writing static templates, we would be better off using vanilla HTML, or perhaps Shadow DOM
 components. Where Bobtail shines is in how it ties the templating language to reactive primitives.
 

@@ -1,5 +1,7 @@
 # Wishlist
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/scheming.png" class="header-image"/>
+
 There are a number of areas for improvement in Bobtail, including but not
 limited to the following:
 

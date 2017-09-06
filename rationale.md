@@ -1,5 +1,7 @@
 # Rationale
 
+<img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/curious.png" class="header-image"/>
+
 With so many client-side model-view web frameworks out there, why create yet another one? What's so special about this 
 one? The goals of Bobtail include:
 
