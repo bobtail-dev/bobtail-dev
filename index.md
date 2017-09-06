@@ -89,6 +89,8 @@ support of [Dropbox](https://blogs.dropbox.com/dropbox/).
 
 ## Contributors
 
+<img class="header-image" style='width:400px;' src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/logo.png">
+
 *   [Travis Athougies](https://github.com/tathougies)
 *   Cassie Doll
 *   [Elik Eizenberg](https://github.com/eizenberg)
