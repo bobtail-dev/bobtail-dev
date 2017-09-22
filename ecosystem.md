@@ -20,7 +20,7 @@ nested sub-fields, without subscribing to changes on the entire object.
 Furthermore, it uses [Benjamín Eidelman's](https://github.com/benjamine) 
 [`jsondiffpatch` package](https://github.com/benjamine/jsondiffpatch)
 package for its change event notation to fire only minimal refreshes.
-ß∂
+
 ### [`bobtail-form`](github.com/bobtail-dev/bobtail-form)
 
 The `bobtail-form` package combines `bobtail-json-cell` with 

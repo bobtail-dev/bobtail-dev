@@ -200,8 +200,96 @@ Users interested in `asyncBind` are also encouraged to take a look at the (very 
 [implementations](https://github.com/bobtail-dev/bobtail-rx/blob/master/src/main.js) of `bind`, `lagBind`, and 
 `postLagBind`.
 
+### Why promiseBinds?
 
-## Object-Oriented Programming: A Pattern for Public and Private Cells
+One could indeed use a regular `bind` to work with `Promise`s. 
+`bind(() => $.get(`/${catType.get()}/#{catName.get()}/appearance`))` will give you a Promise that will be replaced
+every time `catType` or `catName` updates. The issue is that you'd need to supply your own `then` and `catch` callbacks,
+which would need to operate imperatively, either by setting the value of some cell or redrawing a portion of the UI.
+This leads to the well known problem of imperative spaghetti code, where one has countless event handlers and Promise
+resolvers all vying to imperatively update the state of your app.
+
+`promiseBind` allows you to work with asynchronously returned data as though they _were_ synchronously returned. When 
+the data you're waiting for returns, your model will simply update, and any changes will propagate out naturally. 
+No mess of imperative spaghetti code, no callback hell. 
+
+As written, `promiseBind` is intended to be as simple and flexible as possible. We don't want to impose, for instance,
+a rule saying that if `promiseFn` returns `null` that we should reset the `PromiseBind` to its initial value. That is 
+a very reasonable course of action, but it's hardly the only one.
+
+`catchFn` is necessary because otherwise there would be no way to resolve a cell whose Promise had failed. Defaulting 
+to resolving potentially uncontrolled error data seemed dangerous, and returning to `init` seemed counterintuitive, 
+which left `null` as the safest default.
+ 
+As such, you're highly encouraged to write your own wrapper functions for `promiseBind`, with sane defaults for your 
+application. Here's an example:
+
+```
+function smartBind(fn) {
+  return rx.promiseBind(() => Promise.resolve(fn())); 
+}
+```
+
+Using [`Promise.resolve`](mdn.io/Promise.resolve) in this fashion means that, if the function returns a value 
+synchronously, that value will be immediately resolved to a new `Promise`, which would allow us to remove the 
+distinction between synchronous (`bind`) and asynchronous resolution (`promiseBind`). Whether this is a wise idea or 
+not is open for debate, and depends on the application you're trying to build.
+
+## Best Practices
+
+### Separation of Templating and Loading
+
+With `promiseBind`s, it's easy to have your templating code directly loading data. However, it is generally a very good idea to separate
+these pieces of functionality. Consider:
+
+```
+let profile = (userId) => {
+  userId = rx.cell.from(userId);
+  let userData = rx.promiseBind(null, () => $.get('/users/' + userId.get());
+  return rx.rxt.tags.div({class: 'profile'}, bind(() => {
+    if(userData.get()) {
+      return R.h1(userData.get().name);
+    }
+    else return loadingView();
+  }))
+}
+```
+Note the use of `rx.cast`--this allows the templating function to take both regular `String`s and `ObsCell`s.
+Unfortunately, it's now more or less impossible to test this function without mocking out the `$.get` jQuery function, which
+is at best _inconvenient_. Instead, we could write:
+
+```
+let userData = rx.promiseBind(null, () => $.get('/users/' + userId.get());
+let profile = (userData) => {
+  userData = rx.cell.from(userData);
+  return rx.rxt.tags.div({class: 'profile'}, bind(() => {
+    if(userData.get()) {
+      return R.h1(userData.get().name);
+    }
+    else return loadingView();
+  }))
+}
+```
+
+Again, we cast so that we can support observable and non-observable inputs. Here, though, we pass the data that we will be
+rendering, which is loaded from somewhere outside of the template. The `profile` function now no longer needs to know or care about
+how data is loaded, and can be tested by just passing static mock data to it.
+
+Bobtail does not attempt to impose a particular design paradigm. However, separating templating from loading leads quite 
+naturally with to the MVVM pattern. In this paradigm, you have a few pieces. First, you have the model, which comprises 
+both the current state of the program (typically dependent on URL route), and the data that it has loaded from the 
+server in response to that state. You of course have templating functions (the views). Between them you have the
+`viewmodel`, which in Bobtail can be thought of as a tree of dependent observables that transform this data into
+something the templating functions can work with.
+
+### URL routing
+
+Frontend URL routers are a dime a dozen these days. Bobtail does not attempt to select or impose one by default.
+What we do recommend, however, is to use a router that does not force asynchronous returns. Use the router
+to synchronously set state observables based on the current URL, and then use `promiseBinds` to asynchronously
+load information based on those state observables.
+
+### Object-Oriented Programming: A Pattern for Public and Private Cells
 
 Often, when using an object-oriented approach, one wants to expose values to the user without permitting them to change 
 those values directly. When using reactive, we would also want the user to be able to subscribe listeners to these 

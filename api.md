@@ -56,6 +56,11 @@ changed.
 *   `bind(fn)`: given a 0-ary function, return a `DepCell` whose value is bound to the result of evaluating that 
 function. The function is immediately evaluated once, and each time it's evaluated, for any accesses of observables, 
 the `DepCell` subscribes to the corresponding events, which may subsequently trigger future re-evaluations.
+* `promiseBind(init, fn, [catchFn])`: given a 0-ary function `fn` which returns a `Promise`, returns a `DepCell` whose 
+value is initialized to `init`, execute `fn` and record dependencies, and update the value of the cell when the 
+`Promise` resolves. If the Promise fails, use a 0- or 1-ary `catchFn` to update the value of the cell based on the
+rejection reason. The default `catchFn` is `() => null`--that is, if a `catchFn` is not specified and the Promise
+rejects, the cell's value will be reset to `null`.
 *   `snap(fn)`: evaluate the given 0-ary function while insulating it from the enclosing bind. This will be evaluated 
 _just once_ and prevents subscriptions to any observables contained therein.
 *   `transaction(f)`: run the given function in a _transaction_, during which updates to observables will not emit 
@@ -65,7 +70,7 @@ of the source cells will no longer be in flux, and thus a consistent view of the
 most one time at some point during its potentially asynchronous duration before calling `this.done(result)`. The call 
 to `this.record(f)` evaluates `f` while recording the implicit subscriptions triggered by accesses to observables. 
 (You can call `done` from within `record` but the result won't be set on this cell until after `record` finishes.) The 
-cell's initial value is `init`.
+cell's initial value is `init`. Note that the use of `this` means that `fn` _cannot_ be an arrow function.
 *   `lagBind(lag, init, fn)`: same as `bind` but waits a 500ms delay after a dependency changes (or after 
 initialization) before the `DepCell` refreshes. For the first 500ms, the cell's value is `init`; you can set this to 
 e.g. `snap(fn)` if you want to immediately populate it with the result of evaluating your given `fn`.
@@ -262,14 +267,23 @@ two-element list of `[oldValue, newValue]`.
 *   `clear()`: removes all entries from the set.
 *   inherits `ObsMap`
 
-## Arrays
 
-*   `flatten(xs)`: given an array of either `Array`s, `ObsArray`s, `ObsCell`s, `ObsSet`s, primitives, or objects, 
+## flatten
+* `rx.flatten(xs)`: given an array of either `Array`s, `ObsArray`s, `ObsCell`s, `ObsSet`s, primitives, or objects, 
 flatten them into one dependent array, which will be able to react to changes in any of the observables. It 
 furthermore strips out `undefined`/`null` elements (for convenient conditionals in the array). This operation is a 
-"deep flatten"---it will recursively flatten nested arrays. This function is a useful tool for building up the 
-DOM---for specifying the children of an element where the children can consist of many different individual elements, 
-arrays, and/or conditionals.
+"deep flatten"---it will recursively flatten nested arrays. Furthermore, reactive objects which themselves return 
+reactive objects are also recursively flattened: `bind(() => [bind(() => [42]).toArray())` will resolve to `42`.
+Any `Function`s found in the recursive descent are first bound, and the resulting cell then flattened.
+
+This function exists primarily to support the templating DSL. All non-primitive `contents` passed to an `rxt.tags`
+function are run through `rx.flatten` to convert it into something we can use to construct HTML tags. The reasoning 
+behind this is that, when writing templates, nested structures can easily develop. We would prefer not to have to wrap
+these in semantically meaningless `div` or `span` tags (especially problematic when, say, working with tables). This 
+means that, unlike in older versions of Bobtail and Reactive Coffee, you do not have to explicitly call `flatten` to
+simplify complex templating code; we do it for you automatically. 
+
+## Arrays
 *   `concat(arrays...)`: returns a dependent array that is the result of concatenating multiple `ObsArray`s 
 (efficiently maintained).
 *   `basicDiff([key])`: returns a diff function that takes two arrays and uses the given key function, which defaults 

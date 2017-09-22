@@ -206,6 +206,68 @@ rx.transaction(() => {
 // and `b` still sum to 8.
 ```
 
+## Promises and Asynchronicity
+
+Synchronous JavaScript does not get you very far nowadays. Everyone wants data and resources loaded asynchronously,
+for the obvious reason that blocking your render loop while you wait for a 50k request to finish is _bad_. Bobtail
+supports asynchronous requests with the `promiseBind` helper method. `promiseBind` takes three arguments, `init`, 
+`promiseFn`, and, optionally, `catchFn`, and returns a `DepCell`. 
+
+`init` is the initial value of the `DepCell`, while `promiseFn` is a 0-ary function that returns a `Promise`. `catchFn` is a 
+0- or 1-ary function. If the Promise is rejected, `catchFn` is called with the `reason` why it the `Promise`
+was rejected; the cell is updated with its return value. The default `catchFn` function simply sets the cell's
+value to `null`.  
+
+Here's an example using jQuery's [`$.get`](https://api.jquery.com/get/):
+
+```
+let catType = rx.cell('bobcats');
+let catName = rx.cell('charlie');
+let appearance = rx.promiseBind(
+  {}, 
+  () => $.get('/' + catType.get() + '/' + catName.get() + '/appearance').then(({size, color}) => {size, color}),
+  (reason) => {error: reason}
+);
+```
+
+### Handling Errors
+
+What happens if the URL we are trying to get is invalid? Well, there are two options. The first is
+that we can catch the 404 error returned by the server, using `catchFn`. The problem with this, of course, is that
+we have to wait for the server to return. If, however, we know ahead of time that there's not enough information for the 
+request, we can resolve or reject the Promise ourselves, depending on whether we think this is a problem:
+
+```
+let appearance = rx.promiseBind(
+  {},
+  () => {
+    if(catType.get() && catName.get()) {
+      return $.get(`/${catType.get()}/#{catName.get()}/appearance`);
+    }
+    return Promise.resolve({color: '', size: ''});
+  } 
+  (reason) => {error: reason}  // save this for unexpected errors.
+);
+```
+
+### Post-processing
+
+Once the Promise has resolved, you are likely going to want to do some sort of post-processing on the result.
+Perhaps you need to stitch it with other data, or format it for display. You can postprocess rejections
+similarly
+
+If, however, you want that data to be formatted _reactively_, you should create another cell and bind it to
+the processed value of your `promiseBind`:
+
+```
+let cat = rx.bind(() => ({
+  breed: catType.get(),
+  name: catName.get(),
+  color: appearance.get().color,
+  size: appearance.get().size
+}))
+```
+
 ## Arrays, Maps, and Sets
 
 Cells are the most general type of observable container. However, there are also observable containers with special 
@@ -320,11 +382,31 @@ const hasMar = rx.bind(() => months.has('Mar'));
 Introduced along with Maps in ES2015, 
 [Sets](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) are a kind of cross 
 between a Map and an Array. JavaScript Sets are ordered, but each element in a set can appear only once, and it takes 
-O(1) lookup time to check if an element is in a Set. In JavaScript, Sets are equivalent to Maps where every key has
-itself for a value.
+O(1) lookup time to check if an element is in a Set.
 
 `ObsSets` come with only a single event, `OnChange`. As with `ObsMap`s, one can check to see if an element is present in
 the `ObsSet` using the `has` method. There is no `get` method.
+
+### Casting
+To cast from one reactive type to another, every `Obs` object comes with `toCell`, `toArray`, `toMap`, and `toSet` 
+methods, which return a `Dep` object of the corresponding type bound to this observable's value. The exception is
+when trying to cast an observable to itself, in which case, for legacy reasons, the method simply returns the original
+observable. If you want a `Dep` version of an observable (useful for exposing read-only interfaces), you can use the
+`readOnly` method.
+
+Meanwhile, `rx.cell.from`, `rx.array.from`, `rx.map.from`, and `rx.set.from` allow you to construct `Dep` observables 
+from both regular and reactive objects.
+```
+let arr1 = rx.array.from([42]);  // DepArray [42]
+let arr2 = rx.array.from(arr1);  // DepArray [42]
+let arr3 = rx.array.from(bind(() => [42]));  // DepArray [42]
+```
+
+Finally, the `rxt.cast` method allows you to freely cast any primitive or observable to an observable:
+
+```
+let map1 = rx.cast({a: 1, b: 2}, 'map');
+```
 
 ### rx.flatten
 
@@ -353,7 +435,7 @@ console.info(flattened.raw());
 ```
 
 This is obviously an extreme case, however it's not uncommon to need to deal with, for instance, an `ObsArray` of 
-`ObsArray`s. Currently, `ObsMaps` are not supported as part of flatten, because it's not clear what they should flatten
+`ObsArray`s. Currently, `ObsMaps` are not supported by `flatten`, because it's not clear what they should flatten
 _to_.
 
 ## `ObsBase` common methods
@@ -361,7 +443,7 @@ _to_.
 `ObsCell`, `ObsArray`, `ObsSet`, and `ObsMap` all extend the `ObsBase` class. You can too, if you want to implement your
 own custom reactive objects. However, you should never directly instantiate an `ObsBase`. In a more object oriented 
 framework, it would be an abstract class. `ObsBase` comes with a number of useful methods, the most notable of which are
-`.all`, `.raw`, `readonly`, and `.to[Cell/Array/Set/Map]`. 
+`.all`, `.raw`, `.readonly`, and `.to[Cell/Array/Set/Map]`. 
 * `all` returns the current value of the observable, subscribing
 to any events it might emit. This is useful, but note the inherent inefficiency:
 * `raw` returns the current value of the observable _without_ subscribing.
@@ -472,8 +554,7 @@ $button.click(function() { return $(this).text('I been clicked.'); });
 
 <img src="https://raw.githubusercontent.com/bobtail-dev/bobtail-dev.github.io/master/mascot/sneak.png" class="body-image"/>
 
-Of course, if we were only writing static templates, we would be better off using vanilla HTML, or perhaps Shadow DOM
-components. Where Bobtail shines is in how it ties the templating language to reactive primitives.
+Of course, if we were only writing static templates, we would be better off using vanilla HTML. 
 
 Now, you _could_ just write explicit imperative code to transform the DOM in a way that consistently reflects the 
 bindings you're interested in. For instance:
@@ -529,8 +610,12 @@ $('body').append(
 );
 ```
 
-You're declaring what the UI should _always look like at any given time_. Bobtail frees you from the responsibility of 
-maintaining and transitioning state. 
+And this is where Bobtail shines. The primitives on their own are clever, but not hugely useful. The templating language 
+on its own is a toy. Together, however, they offer an incredibly expressive approach to building user interfaces.
+
+Bobtail lets you declare what the UI should _always look like at any given time_. It thus frees you from the 
+responsibility of maintaining and transitioning state. Meanwhile, the `promiseBind` function allows us to write UIs
+without worrying about the synchronicity or asynchronicity of our data model. 
 
 Here's another quick example, this one of a todo list. 
 
