@@ -555,10 +555,10 @@ languages, JSX also requires a separate compilation step, in which the tag synta
 [converted into function calls](https://reactjs.org/docs/jsx-in-depth.html)--by default, React's `createElement`
 function.
 
-As of version 2.3.0, Bobtail includes a `createElement` function, which behaves superficially similarly to React's.
-Lowercase tags are instantiated using Bobtail's `createTag` function. If a tag is uppercase, it will be instantiated
-using a function or class in the current scope. If it's a class, it needs to have a `render` method defined, as in
-React.
+As of version 2.3.0, Bobtail includes a `createElement` function in its `rxt` namespace, which behaves superficially
+similarly to React's. Lowercase tags are instantiated using Bobtail's `createTag` function. If a tag is uppercase,
+it will be instantiated using a function or class in the current scope. If it's a class, it needs to have a `render`
+method defined, as in React.
 
 The following example uses JSX with a function, a class, and basic tags:
 
@@ -593,8 +593,9 @@ function GreenCircleCounter() {
 }
 ```
 
-To use JSX with react, you need to use a transpiler, like Babel, and set the pragma field. The following is a sample
-.babelrc:
+To use JSX with react, you need to use a transpiler, like Babel, and set the pragma field to the `rxt.createElement`
+function--however you've imported it. The following is a sample .babelrc, assuming you import Bobtail into the `rx`
+namespace:
 
 ```
 {
