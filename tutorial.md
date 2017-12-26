@@ -408,7 +408,7 @@ Finally, the `rxt.cast` method allows you to freely cast any primitive or observ
 let map1 = rx.cast({a: 1, b: 2}, 'map');
 ```
 
-### rx.flatten
+### `rx.flatten`
 
 The `rx.flatten` utility method is an extremely useful tool for working with nested data structures. It recursively 
 flattens both primitive and reactive data structures, removing `null`/`undefined` values, and returns a `DepArray`. 
@@ -468,14 +468,10 @@ One of the most unique and powerful aspects of JavaScript is the expressivity of
 model has become so powerful that even desktop software is now being written as HTML/CSS/JavaScript applications, using
 frameworks such as Electron.
 
-Many frameworks have historically supported interacting with the DOM through pseudo-HTML templating languages. This goes
-back to the 90s, with ASP.Net and PHP, and has been handed down through Rails to Angular, Ember, and others. Recently,
-with the rise in popularity of React, JSX has become considerably more popular. Rather than extending HTML, JSX opts to
-extends JavaScript itself to provide templating functionality. However, like HTML-ish templating languages, JSX also
-requires a separate compilation step.
-
-Bobtail takes a different approach to templating. Our templates are expressed using pure, vanilla JavaScript--no extra
-compilation required:
+Many frameworks have historically supported interacting with the DOM through pseudo-HTML templating
+languages. This goes back to the 90s, with ASP.Net and PHP, and has been handed down through Rails
+to Angular, Ember, and others. React, on the other hand, uses JavaScript to handle its templating,
+with the concept of a component being key. Like React, we express our templates using JavaScript.
 
 ```
 let tags = rx.rxt.tags;
@@ -490,7 +486,7 @@ let $sidebar = tags.div({class: 'sidebar'}, [
     tags.button({class: 'submit-btn'}, 'Send')
   ])
 ]);
-``` 
+```
 
 That translates to the following HTML:
 
@@ -508,7 +504,8 @@ That translates to the following HTML:
 </div>
 ```
 
-Because this is just JavaScript, templates can be easily broken apart and composed using functions, loops, conditionals.
+Because this is just JavaScript, templates can be easily broken apart and composed using functions,
+loops, and conditionals.
 
 ```
 // Loops:
@@ -538,16 +535,76 @@ function Tree(tree) {
 ```
 
 Bobtail's tag functions have a flexible argument structure: `tag(attrs, children)`. 
-Both the `attrs` and `children` arguments are optional; one can create an empty div with `R.div()`. Basically, if the
-first argument is a non-Array Object, then it's used as the tag's attrs. Otherwise, it's interpreted as the tag's child
-or children.
+Both the `attrs` and `children` arguments are optional; one can create an empty div with `R.div()`.
+Basically, if the first argument is a non-Array Object, then it's used as the tag's attrs.
+Otherwise, it's interpreted as the tag's child or children.
 
-Tags are really just functions that return DOM elements (wrapped in jQuery objects), so you are free to attach 
-behaviors to them:
+Tags are really just functions that return DOM elements (wrapped in jQuery objects), so you are
+free to attach behaviors to them:
 
 ```
 const $button = tags.button({class: 'submit-btn'}, 'Click Me!');
 $button.click(function() { return $(this).text('I been clicked.'); });
+```
+
+### JSX Support
+
+Recently, with the rise in popularity of React, JSX become a popular method for writing frontend templates. Rather than
+extending HTML, JSX opts to extend JavaScript itself to provide templating functionality. Like HTML-ish templating
+languages, JSX also requires a separate compilation step, in which the tag syntax in .jsx files are
+[converted into function calls](https://reactjs.org/docs/jsx-in-depth.html)--by default, React's `createElement`
+function.
+
+As of version 2.3.0, Bobtail includes a `createElement` function, which behaves superficially similarly to React's.
+Lowercase tags are instantiated using Bobtail's `createTag` function. If a tag is uppercase, it will be instantiated
+using a function or class in the current scope. If it's a class, it needs to have a `render` method defined, as in
+React.
+
+The following example uses JSX with a function, a class, and basic tags:
+
+```
+function Counter(opts={}) {
+    let count = rx.cell(opts.count || 0);
+    return (
+        <div>
+            {count}
+            <button click={() => count.set(count.raw() + 1)}>+</button>
+            <button click={() => count.set(count.raw() - 1)}>-</button>
+        </div>
+    );
+}
+
+class ShapedContainer {
+    constructor(opts={}, contents=[]) {
+        this.color = rx.cell(opts.color || 'red');
+        this.shape = rx.cell(opts.shape || 'square');
+    }
+    render() {
+        return <div class={bind(() => this.color.get() + " " + this.shape.get()}>{contents}</div>
+    }
+}
+
+function GreenCircleCounter() {
+    return (
+        <ShapedContainer color="green" shape="circle">
+            <Counter />
+        </ShapedContainer>
+    );
+}
+```
+
+To use JSX with react, you need to use a transpiler, like Babel, and set the pragma field. The following is a sample
+.babelrc:
+
+```
+{
+  "presets": ["es2015"],
+  "plugins": [
+    ["transform-react-jsx", {
+      "pragma": "rx.rxt.createElement"
+    }]
+  ], ...
+}
 ```
 
 ## Reactive Templates
@@ -556,8 +613,8 @@ $button.click(function() { return $(this).text('I been clicked.'); });
 
 Of course, if we were only writing static templates, we would be better off using vanilla HTML. 
 
-Now, you _could_ just write explicit imperative code to transform the DOM in a way that consistently reflects the 
-bindings you're interested in. For instance:
+Now, you _could_ just write explicit imperative code to transform the DOM in a way that
+consistently reflects the bindings you're interested in. For instance:
 
 ```
 $('body').append(tags.input({
@@ -610,12 +667,14 @@ $('body').append(
 );
 ```
 
-And this is where Bobtail shines. The primitives on their own are clever, but not hugely useful. The templating language 
-on its own is a toy. Together, however, they offer an incredibly expressive approach to building user interfaces.
+And this is where Bobtail shines. The primitives on their own are clever, but not hugely useful.
+The templating language on its own is a toy. Together, however, they offer an incredibly expressive
+approach to building user interfaces.
 
-Bobtail lets you declare what the UI should _always look like at any given time_. It thus frees you from the 
-responsibility of maintaining and transitioning state. Meanwhile, the `promiseBind` function allows us to write UIs
-without worrying about the synchronicity or asynchronicity of our data model. 
+Bobtail lets you declare what the UI should _always look like at any given time_. It thus frees you
+from the responsibility of maintaining and transitioning state. Meanwhile, the `promiseBind`
+function allows us to write UIs without worrying about the synchronicity or asynchronicity of our
+data model.
 
 Here's another quick example, this one of a todo list. 
 
@@ -871,6 +930,7 @@ tags.input({
 
 ## Next Steps
 
-Congratulations! You now have a working knowledge of Bobtail. Interested in learning more? Check out the 
-[advanced topics](http://bobtailjs.io/advanced.html) and our [nascent ecosystem](http://bobtailjs.io/ecosystem.html)!
-Want to contribute? Take a look at our 
+Congratulations! You now have a working knowledge of Bobtail. Interested in learning more? Check
+out the [advanced topics](http://bobtailjs.io/advanced.html) and our
+[nascent ecosystem](http://bobtailjs.io/ecosystem.html). Want to contribute? Take a look at our
+[development guidelines](http://bobtailjs.io/development.html)!
